@@ -175,7 +175,7 @@ static inline ov::element::Type_t getOVPrecision(const ze_graph_argument_precisi
     case ZE_GRAPH_ARGUMENT_PRECISION_BIN:
         return ov::element::Type_t::u1;
     default:
-        return ov::element::Type_t::undefined;
+        return ov::element::dynamic;
     }
 }
 
