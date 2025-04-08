@@ -211,12 +211,39 @@ std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std:
                             "Unexpected network name: ",
                             networkDescription->metadata.name);
 
-            mainNetworkDescription = std::move(networkDescription);
+            initDscrs.push_back(std::move(networkDescription));
             break;
         }
 
-        // FIXME
-        initNetworkDescription = std::move(initDscrs[0]);
+        std::vector<std::shared_ptr<IGraph>> results;
+        results.reserve(initDscrs.size());
+        for (auto& networkDesc : initDscrs) {
+            auto blobContainer = std::make_unique<BlobContainerVector>(std::move(networkDesc->compiledNetwork));
+            ze_graph_handle_t graphHandle = nullptr;
+            if (_zeGraphExt) {
+                // Depending on the config, we may get an error when trying to
+                // get the graph handle from the compiled network
+                try {
+                    graphHandle =
+                        _zeGraphExt->getGraphHandle(*reinterpret_cast<const uint8_t*>(blobContainer->get_ptr()),
+                                                    blobContainer->size());
+                } catch (...) {
+                    _logger.info(
+                        "Failed to obtain the level zero graph handle. Inference requests for this model are not "
+                        "allowed. Only exports are available");
+                }
+            }
+
+            results.push_back(std::make_shared<PluginGraph>(_zeGraphExt,
+                                                            _compiler,
+                                                            _zeroInitStruct,
+                                                            graphHandle,
+                                                            std::move(networkDesc->metadata),
+                                                            std::move(blobContainer),
+                                                            config));
+        }
+
+        return results;
     } break;
     default:
         OPENVINO_THROW("Invalid \"SEPARATE_WEIGHTS_VERSION\" value found within the \"compileWS\" call");
