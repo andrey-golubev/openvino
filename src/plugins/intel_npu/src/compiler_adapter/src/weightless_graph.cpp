@@ -401,10 +401,13 @@ WeightlessGraph::InputData WeightlessGraph::allocate_inputs(
         initInputsViewTensors.push_back(
             ov::make_tensor(constant->get_element_type(), constant->get_shape(), currentInputBufferLocation));
         offset += currentInputSize;
+    }
 
+    for (const IODescriptor& descriptor : _initsMetadata.at(initIndex).inputs) {
+        const size_t id = std::stoi(descriptor.nameFromCompiler);
         // Note: By construction of the weight schedule, every constant from OV
-        // model appears exactly once across all schedules. Thus, one can delete
-        // the handle to the constant memory early.
+        // model appears in exactly one schedule. Thus, one can delete the handle
+        // to the constant memory early.
         constants.erase(id);
     }
 
