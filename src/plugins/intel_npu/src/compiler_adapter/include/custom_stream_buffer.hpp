@@ -84,4 +84,43 @@ private:
     OutputIt writeIt;
 };
 
+/**
+ *  @brief String stream buffer, writes data to target iterator.
+ *  Reads will result in EOF and no seek is supported.
+ */
+class external_string_streambuf final : public std::streambuf {
+public:
+    external_string_streambuf(std::string& str) : str(str), startPos(str.size()) {}
+
+private:
+    int overflow(int c) override {
+        str.append(1, static_cast<char>(c));
+        return c;
+    }
+
+    std::streamsize xsputn(const char* s, std::streamsize n) override {
+        str.insert(startPos, s, n);
+        return n;
+    }
+
+    std::streampos seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) override {
+        // Return current stream position
+        if (off == 0 && way == std::ios_base::cur && which == std::ios_base::out) {
+            return str.size() - startPos;
+        } else {
+            // No seek support
+            OPENVINO_THROW("Seek operation is not supported for external_string_streambuf");
+        }
+    }
+
+    pos_type seekpos(pos_type pos, std::ios_base::openmode which) override {
+        std::ignore = which;
+        startPos = pos;
+        return pos;
+    }
+
+    std::string& str;
+    size_t startPos;
+};
+
 }  // namespace intel_npu::compiler_utils

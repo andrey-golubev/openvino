@@ -317,15 +317,15 @@ std::unordered_set<std::string> parseQueryResult(std::vector<char>& data) {
     return result;
 }
 
-std::unordered_set<std::string> ZeGraphExtWrappers::queryGraph(SerializedIR serializedIR,
+std::unordered_set<std::string> ZeGraphExtWrappers::queryGraph(const SerializedIR& serializedIR,
                                                                const std::string& buildFlags) const {
     ze_graph_query_network_handle_t hGraphQueryNetwork = nullptr;
     ze_graph_desc_2_t desc = {
         _graphExtVersion < ZE_MAKE_VERSION(1, 16) ? ZE_STRUCTURE_TYPE_GRAPH_DESC : ZE_STRUCTURE_TYPE_GRAPH_DESC_2,
         nullptr,
         ZE_GRAPH_FORMAT_NGRAPH_LITE,
-        serializedIR.size,
-        serializedIR.buffer.get(),
+        serializedIR.buffer.size(),
+        reinterpret_cast<const uint8_t*>(serializedIR.buffer.data()),
         buildFlags.c_str(),
         ZE_GRAPH_FLAG_NONE};
 
@@ -382,7 +382,7 @@ bool ZeGraphExtWrappers::canCpuVaBeImported(const void* data, size_t size) const
     return true;
 }
 
-GraphDescriptor ZeGraphExtWrappers::getGraphDescriptor(SerializedIR serializedIR,
+GraphDescriptor ZeGraphExtWrappers::getGraphDescriptor(const SerializedIR& serializedIR,
                                                        const std::string& buildFlags,
                                                        const bool bypassUmdCache) const {
     ze_graph_handle_t graphHandle = nullptr;
@@ -402,8 +402,8 @@ GraphDescriptor ZeGraphExtWrappers::getGraphDescriptor(SerializedIR serializedIR
     ze_graph_desc_2_t desc = {ZE_STRUCTURE_TYPE_GRAPH_DESC_2,
                               pNext,
                               ZE_GRAPH_FORMAT_NGRAPH_LITE,
-                              serializedIR.size,
-                              serializedIR.buffer.get(),
+                              serializedIR.buffer.size(),
+                              reinterpret_cast<const uint8_t*>(serializedIR.buffer.data()),
                               buildFlags.c_str(),
                               flags};
 

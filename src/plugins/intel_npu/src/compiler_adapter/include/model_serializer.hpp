@@ -19,8 +19,9 @@
 namespace intel_npu {
 
 struct SerializedIR {
-    std::shared_ptr<uint8_t> buffer = nullptr;
-    size_t size = 0;
+    static_assert(sizeof(char) == sizeof(uint8_t),
+                  "VCL expects uint8_t buffer. std::string is supposed to be a byte-buffer");
+    std::string buffer{};
     ov::intel_npu::ModelSerializerVersion serializerVersion = MODEL_SERIALIZER_VERSION::defaultValue();
     std::optional<uint64_t> hash = std::nullopt;
 };

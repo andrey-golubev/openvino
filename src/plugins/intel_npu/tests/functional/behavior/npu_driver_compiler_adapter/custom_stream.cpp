@@ -127,7 +127,7 @@ TEST_P(DriverCompilerAdapterCustomStreamTestNPU, TestLargeModelWeightsCopy) {
                         11,
                         ov::intel_npu::ModelSerializerVersion::ALL_WEIGHTS_COPY));
     // If the size changes significantly, then investigation may be required
-    ASSERT_TRUE(serializedModel.size > SERIALIZED_MODEL_THRESHOLD_ALL_WEIGHTS_COPY);
+    ASSERT_TRUE(serializedModel.buffer.size() > SERIALIZED_MODEL_THRESHOLD_ALL_WEIGHTS_COPY);
     ASSERT_TRUE(serializedModel.serializerVersion == ov::intel_npu::ModelSerializerVersion::ALL_WEIGHTS_COPY);
 }
 
@@ -142,11 +142,11 @@ TEST_P(DriverCompilerAdapterCustomStreamTestNPU, TestLargeModelNoWeightsCopy) {
                         11,
                         ov::intel_npu::ModelSerializerVersion::NO_WEIGHTS_COPY));
     // If the size changes significantly, then investigation may be required
-    ASSERT_TRUE(serializedModel.size < SERIALIZED_MODEL_THRESHOLD_NO_WEIGHTS_COPY);
+    ASSERT_TRUE(serializedModel.buffer.size() < SERIALIZED_MODEL_THRESHOLD_NO_WEIGHTS_COPY);
     ASSERT_TRUE(serializedModel.serializerVersion == ov::intel_npu::ModelSerializerVersion::NO_WEIGHTS_COPY);
 
     ov::pass::StreamSerialize::DataHeader dataHeader;
-    memcpy(&dataHeader, serializedModel.buffer.get(), sizeof(dataHeader));
+    memcpy(&dataHeader, serializedModel.buffer.data(), sizeof(dataHeader));
     ASSERT_TRUE(dataHeader.consts_size == 0);
 }
 

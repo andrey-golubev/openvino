@@ -416,9 +416,8 @@ public:
         const uint64_t sizeOfSerializedIR = sizeof(_compilerVersion) + sizeof(numberOfInputData) + sizeof(xmlSize) +
                                             xmlSize + sizeof(weightsSize) + weightsSize;
 
-        // use array to avoid vector's memory zeroing overhead
-        std::shared_ptr<uint8_t> buffer(new uint8_t[sizeOfSerializedIR], std::default_delete<uint8_t[]>());
-        uint8_t* serializedIR = buffer.get();
+        std::string buffer(sizeOfSerializedIR, '\0');
+        uint8_t* serializedIR = reinterpret_cast<uint8_t*>(buffer.data());
 
         uint64_t offset = 0;
         checkedMemcpy(serializedIR + offset, sizeOfSerializedIR - offset, &_compilerVersion, sizeof(_compilerVersion));
@@ -445,7 +444,7 @@ public:
 
         OPENVINO_ASSERT(offset == sizeOfSerializedIR);
 
-        return {buffer, sizeOfSerializedIR, ov::intel_npu::ModelSerializerVersion::ALL_WEIGHTS_COPY, hash};
+        return {std::move(buffer), ov::intel_npu::ModelSerializerVersion::ALL_WEIGHTS_COPY, hash};
     }
 
 private:
@@ -520,14 +519,16 @@ public:
         run_common_pipeline(model, storeWeightlessCacheAttributeFlag);
         storeWeightsPointerAttribute(model);
 
-        uint64_t serializedModelSize = count_model_size(model);
+        SerializedIR result{};
+        result.serializerVersion = ov::intel_npu::ModelSerializerVersion::NO_WEIGHTS_COPY;
+        result.hash = computeModelHash ? std::make_optional<uint64_t>(0) : std::nullopt;
 
-        // use array to avoid vector's memory zero-ing overhead
-        std::shared_ptr<uint8_t> buffer(new uint8_t[serializedModelSize], std::default_delete<uint8_t[]>());
-        std::optional<uint64_t> hash = computeModelHash ? std::make_optional<uint64_t>(0) : std::nullopt;
-        serialize_model_to_buffer(model, buffer.get(), hash);
+        external_string_streambuf streamBuf(result.buffer);
+        std::ostream stream(&streamBuf);
+        serialize_model_to_stream(model, stream, result.hash);
+        result.buffer.shrink_to_fit();  // drop unnecessary capacity
 
-        return {buffer, serializedModelSize, ov::intel_npu::ModelSerializerVersion::NO_WEIGHTS_COPY, hash};
+        return result;
     }
 
 private:
